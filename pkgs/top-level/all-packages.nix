@@ -10682,6 +10682,8 @@ in
 
   pry = callPackage ../development/tools/pry { };
 
+  ptags = callPackage ../development/tools/misc/ptags { };
+
   pup = callPackage ../development/tools/pup { };
 
   puppet-lint = callPackage ../development/tools/puppet/puppet-lint { };
