@@ -5,6 +5,7 @@
   pkg-config,
   pcre,
   perl,
+  darwin, libiconv, libidn2, libcourier-unicode
 }:
 
 stdenv.mkDerivation rec {
@@ -20,7 +21,10 @@ stdenv.mkDerivation rec {
   buildInputs = [
     pcre
     perl
-  ];
+  ]
+  ++ lib.optionals stdenv.isDarwin [
+    libiconv darwin.apple_sdk.frameworks.Security ]
+  ;
 
   patches = [ ./maildrop.configure.hack.patch ]; # for building in chroot
 
@@ -30,6 +34,6 @@ stdenv.mkDerivation rec {
     homepage = "http://www.courier-mta.org/maildrop/";
     description = "Mail filter/mail delivery agent that is used by the Courier Mail Server";
     license = licenses.gpl3;
-    platforms = platforms.linux;
+    platforms = platforms.linux ++ platforms.darwin;
   };
 }
