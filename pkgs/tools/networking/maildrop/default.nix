@@ -1,4 +1,6 @@
-{ fetchurl, lib, stdenv, pkg-config, pcre, perl }:
+{ fetchurl, lib, stdenv, pkg-config, pcre, perl
+, darwin, libiconv
+}:
 
 stdenv.mkDerivation {
   name = "maildrop-2.6.0";
@@ -9,7 +11,10 @@ stdenv.mkDerivation {
   };
 
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ pcre perl ];
+  buildInputs = [ pcre perl ]
+  ++ lib.optionals stdenv.isDarwin [
+    libiconv darwin.apple_sdk.frameworks.Security ]
+  ;
 
   patches = [ ./maildrop.configure.hack.patch ]; # for building in chroot
 
@@ -19,6 +24,6 @@ stdenv.mkDerivation {
     homepage = "http://www.courier-mta.org/maildrop/";
     description = "Mail filter/mail delivery agent that is used by the Courier Mail Server";
     license = licenses.gpl3;
-    platforms = platforms.linux;
+    platforms = platforms.linux ++ platforms.darwin;
   };
 }
