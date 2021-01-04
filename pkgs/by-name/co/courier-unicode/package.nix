@@ -3,6 +3,7 @@
   fetchurl,
   lib,
   perl,
+  darwin, libiconv
 }:
 
 stdenv.mkDerivation rec {
@@ -16,7 +17,10 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [
     perl
-  ];
+  ]
+  ++ lib.optionals stdenv.isDarwin [
+    libiconv darwin.apple_sdk.frameworks.Security ]
+  ;
 
   outputs = [
     "out"
@@ -27,6 +31,6 @@ stdenv.mkDerivation rec {
     homepage = "http://www.courier-mta.org/unicode/";
     description = "The Courier Unicode Library is used by most other Courier packages";
     license = lib.licenses.gpl3;
-    platforms = lib.platforms.linux;
+    platforms = lib.platforms.linux ++ lib.platforms.darwin;
   };
 }
