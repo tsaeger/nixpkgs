@@ -7,6 +7,7 @@
   pcre2,
   libidn2,
   perl,
+  darwin, libiconv
 }:
 
 stdenv.mkDerivation rec {
@@ -24,7 +25,10 @@ stdenv.mkDerivation rec {
     libidn2
     pcre2
     perl
-  ];
+  ]
+  ++ lib.optionals stdenv.isDarwin [
+    libiconv darwin.apple_sdk.frameworks.Security ]
+  ;
 
   patches = [ ./maildrop.configure.hack.patch ]; # for building in chroot
 
@@ -34,6 +38,6 @@ stdenv.mkDerivation rec {
     homepage = "http://www.courier-mta.org/maildrop/";
     description = "Mail filter/mail delivery agent that is used by the Courier Mail Server";
     license = licenses.gpl3;
-    platforms = platforms.linux;
+    platforms = platforms.linux ++ platforms.darwin;
   };
 }
