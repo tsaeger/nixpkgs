@@ -9,11 +9,11 @@ let
 
 in stdenv.mkDerivation rec {
   pname = "msmtp";
-  version = "1.8.12";
+  version = "1.8.15";
 
   src = fetchurl {
     url = "https://marlam.de/${pname}/releases/${pname}-${version}.tar.xz";
-    sha256 = "0m33m5bc7ajmgy7vivnzj3mhybg37259hx79xypj769kfyafyvx8";
+    sha256 = "sha256-ImXcY56/Lt8waf/+CjvXZ0n4tY9AAdXN6uGYc5SQmc4=";
   };
 
   patches = [
