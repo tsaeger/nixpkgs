@@ -1,0 +1,163 @@
+From 0fe678820b73d71f7d4968301f3072ad5a90c893 Mon Sep 17 00:00:00 2001
+From: Ryan Kavanagh <rak@rak.ac>
+Date: Sat, 11 Sep 2021 11:17:38 -0400
+Subject: [PATCH 2/5] Added xoauth2 support for imap
+
+---
+ imap/auth.c       |  1 +
+ imap/auth.h       |  1 +
+ imap/auth_oauth.c | 37 ++++++++++++++++++++++++++++++-------
+ imap/command.c    |  1 +
+ imap/private.h    | 25 +++++++++++++------------
+ 5 files changed, 46 insertions(+), 19 deletions(-)
+
+diff --git a/imap/auth.c b/imap/auth.c
+index d111f623d3b8..44cd19aeb3b7 100644
+--- a/imap/auth.c
++++ b/imap/auth.c
+@@ -57,6 +57,7 @@ struct ImapAuth
+ static const struct ImapAuth imap_authenticators[] = {
+   // clang-format off
+   { imap_auth_oauth, "oauthbearer" },
++  { imap_auth_xoauth2, "xoauth2" },
+   { imap_auth_plain, "plain" },
+ #ifdef USE_SASL
+   { imap_auth_sasl, NULL },
+diff --git a/imap/auth.h b/imap/auth.h
+index d9dba44c4be2..61cb51b500f7 100644
+--- a/imap/auth.h
++++ b/imap/auth.h
+@@ -56,5 +56,6 @@ enum ImapAuthRes imap_auth_gss(struct ImapAccountData *adata, const char *method
+ enum ImapAuthRes imap_auth_sasl(struct ImapAccountData *adata, const char *method);
+ #endif
+ enum ImapAuthRes imap_auth_oauth(struct ImapAccountData *adata, const char *method);
++enum ImapAuthRes imap_auth_xoauth2(struct ImapAccountData *adata, const char *method);
+ 
+ #endif /* MUTT_IMAP_AUTH_H */
+diff --git a/imap/auth_oauth.c b/imap/auth_oauth.c
+index 5647cd16262b..3ddf22b5bf1a 100644
+--- a/imap/auth_oauth.c
++++ b/imap/auth_oauth.c
+@@ -39,17 +39,24 @@
+ #include "mutt_socket.h"
+ 
+ /**
+- * imap_auth_oauth - Authenticate an IMAP connection using OAUTHBEARER - Implements ImapAuth::authenticate()
++ * imap_auth_oauth_xoauth2 - Authenticate an IMAP connection using OAUTHBEARER or XOAUTH2
++ * @param adata   Imap Account data
++ * @param method  Use this named method, or any available method if NULL
++ * @param xoauth2 Use xoauth2 token (if true) or oauthbearer token (if false)
++ * @retval num ImapAuth::ImapAuthRes Result, e.g. IMAP_AUTH_SUCCESS
+  */
+-enum ImapAuthRes imap_auth_oauth(struct ImapAccountData *adata, const char *method)
++enum ImapAuthRes imap_auth_oauth_xoauth2(struct ImapAccountData *adata,
++                                         const char *method, bool xoauth2)
+ {
+   char *ibuf = NULL;
+   char *oauthbearer = NULL;
++  const char *authtype = xoauth2 ? "XOAUTH2" : "OAUTHBEARER";
+   int ilen;
+   int rc;
+ 
+   /* For now, we only support SASL_IR also and over TLS */
+-  if (!(adata->capabilities & IMAP_CAP_AUTH_OAUTHBEARER) ||
++  if ((xoauth2 && !(adata->capabilities & IMAP_CAP_AUTH_XOAUTH2)) ||
++      (!xoauth2 && !(adata->capabilities & IMAP_CAP_AUTH_OAUTHBEARER)) ||
+       !(adata->capabilities & IMAP_CAP_SASL_IR) || (adata->conn->ssf == 0))
+   {
+     return IMAP_AUTH_UNAVAIL;
+@@ -60,16 +67,16 @@ enum ImapAuthRes imap_auth_oauth(struct ImapAccountData *adata, const char *meth
+     return IMAP_AUTH_UNAVAIL;
+ 
+   // L10N: (%s) is the method name, e.g. Anonymous, CRAM-MD5, GSSAPI, SASL
+-  mutt_message(_("Authenticating (%s)..."), "OAUTHBEARER");
++  mutt_message(_("Authenticating (%s)..."), authtype);
+ 
+   /* We get the access token from the imap_oauth_refresh_command */
+-  oauthbearer = mutt_account_getoauthbearer(&adata->conn->account, false);
++  oauthbearer = mutt_account_getoauthbearer(&adata->conn->account, xoauth2);
+   if (!oauthbearer)
+     return IMAP_AUTH_FAILURE;
+ 
+   ilen = mutt_str_len(oauthbearer) + 30;
+   ibuf = mutt_mem_malloc(ilen);
+-  snprintf(ibuf, ilen, "AUTHENTICATE OAUTHBEARER %s", oauthbearer);
++  snprintf(ibuf, ilen, "AUTHENTICATE %s %s", authtype, oauthbearer);
+ 
+   /* This doesn't really contain a password, but the token is good for
+    * an hour, so suppress it anyways.  */
+@@ -93,6 +100,22 @@ enum ImapAuthRes imap_auth_oauth(struct ImapAccountData *adata, const char *meth
+   }
+ 
+   // L10N: %s is the method name, e.g. Anonymous, CRAM-MD5, GSSAPI, SASL
+-  mutt_error(_("%s authentication failed"), "OAUTHBEARER");
++  mutt_error(_("%s authentication failed"), authtype);
+   return IMAP_AUTH_FAILURE;
+ }
++
++/**
++ * imap_auth_oauth - Authenticate an IMAP connection using OAUTHBEARER - Implements ImapAuth::authenticate()
++ */
++enum ImapAuthRes imap_auth_oauth(struct ImapAccountData *adata, const char *method)
++{
++  return imap_auth_oauth_xoauth2(adata, method, false);
++}
++
++/**
++ * imap_auth_xoauth2 - Authenticate an IMAP connection using XOAUTH2 - Implements ImapAuth::authenticate()
++ */
++enum ImapAuthRes imap_auth_xoauth2(struct ImapAccountData *adata, const char *method)
++{
++  return imap_auth_oauth_xoauth2(adata, method, true);
++}
+diff --git a/imap/command.c b/imap/command.c
+index c6332f4d369f..f317c63fe954 100644
+--- a/imap/command.c
++++ b/imap/command.c
+@@ -70,6 +70,7 @@ static const char *const Capabilities[] = {
+   "AUTH=GSSAPI",
+   "AUTH=ANONYMOUS",
+   "AUTH=OAUTHBEARER",
++  "AUTH=XOAUTH2",
+   "STARTTLS",
+   "LOGINDISABLED",
+   "IDLE",
+diff --git a/imap/private.h b/imap/private.h
+index a4a5008a66d3..dcf1b6111966 100644
+--- a/imap/private.h
++++ b/imap/private.h
+@@ -130,18 +130,19 @@ typedef uint32_t ImapCapFlags;              ///< Flags, e.g. #IMAP_CAP_IMAP4
+ #define IMAP_CAP_AUTH_GSSAPI      (1 <<  6) ///< RFC1731: GSSAPI authentication
+ #define IMAP_CAP_AUTH_ANONYMOUS   (1 <<  7) ///< AUTH=ANONYMOUS
+ #define IMAP_CAP_AUTH_OAUTHBEARER (1 <<  8) ///< RFC7628: AUTH=OAUTHBEARER
+-#define IMAP_CAP_STARTTLS         (1 <<  9) ///< RFC2595: STARTTLS
+-#define IMAP_CAP_LOGINDISABLED    (1 << 10) ///< RFC2595: LOGINDISABLED
+-#define IMAP_CAP_IDLE             (1 << 11) ///< RFC2177: IDLE
+-#define IMAP_CAP_SASL_IR          (1 << 12) ///< SASL initial response draft
+-#define IMAP_CAP_ENABLE           (1 << 13) ///< RFC5161
+-#define IMAP_CAP_CONDSTORE        (1 << 14) ///< RFC7162
+-#define IMAP_CAP_QRESYNC          (1 << 15) ///< RFC7162
+-#define IMAP_CAP_LIST_EXTENDED    (1 << 16) ///< RFC5258: IMAP4 LIST Command Extensions
+-#define IMAP_CAP_COMPRESS         (1 << 17) ///< RFC4978: COMPRESS=DEFLATE
+-#define IMAP_CAP_X_GM_EXT_1       (1 << 18) ///< https://developers.google.com/gmail/imap/imap-extensions
+-
+-#define IMAP_CAP_ALL             ((1 << 19) - 1)
++#define IMAP_CAP_AUTH_XOAUTH2     (1 <<  9) ///< AUTH=XOAUTH2, deprecated but used by OWA
++#define IMAP_CAP_STARTTLS         (1 << 10) ///< RFC2595: STARTTLS
++#define IMAP_CAP_LOGINDISABLED    (1 << 11) ///< RFC2595: LOGINDISABLED
++#define IMAP_CAP_IDLE             (1 << 12) ///< RFC2177: IDLE
++#define IMAP_CAP_SASL_IR          (1 << 13) ///< SASL initial response draft
++#define IMAP_CAP_ENABLE           (1 << 14) ///< RFC5161
++#define IMAP_CAP_CONDSTORE        (1 << 15) ///< RFC7162
++#define IMAP_CAP_QRESYNC          (1 << 16) ///< RFC7162
++#define IMAP_CAP_LIST_EXTENDED    (1 << 17) ///< RFC5258: IMAP4 LIST Command Extensions
++#define IMAP_CAP_COMPRESS         (1 << 18) ///< RFC4978: COMPRESS=DEFLATE
++#define IMAP_CAP_X_GM_EXT_1       (1 << 19) ///< https://developers.google.com/gmail/imap/imap-extensions
++
++#define IMAP_CAP_ALL             ((1 << 20) - 1)
+ 
+ /**
+  * struct ImapList - Items in an IMAP browser
+-- 
+2.29.3
+

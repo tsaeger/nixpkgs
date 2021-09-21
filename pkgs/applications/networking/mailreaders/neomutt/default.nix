@@ -22,6 +22,11 @@ stdenv.mkDerivation rec {
       url = "https://github.com/neomutt/neomutt/commit/fa1db5785e5cfd9d3cd27b7571b9fe268d2ec2dc.patch";
       sha256 = "0bb7gisjynq3w7hhl6vxa469h609bcz6fkdi8vf740pqrwhk68yn";
     })
+    ./0001-Modify-mutt_account_getoauthbeearer-to-optionally-ge.patch
+    ./0002-Added-xoauth2-support-for-imap.patch
+    ./0003-Added-xoauth2-support-for-smtp.patch
+    ./0004-Import-mutt_oauth2.py-and-mutt_oauth2.py.README-from.patch
+    ./0005-XOAUTH2-documentation.patch
   ];
 
   buildInputs = [
