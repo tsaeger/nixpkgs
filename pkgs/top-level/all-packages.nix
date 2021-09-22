@@ -16091,6 +16091,18 @@ with pkgs;
     libkrb5 = if stdenv.isFreeBSD then libheimdal else libkrb5;
   };
 
+  cyrus-sasl-xoauth2 = callPackage ../development/libraries/cyrus-sasl/plugins/xoauth2 {
+    cyrus-sasl = cyrus_sasl;
+  };
+
+  cyrus-sasl-with-plugins = cyrus_sasl.overrideAttrs (oa: rec {
+    postInstall = ''
+      for lib in ${cyrus-sasl-xoauth2}/usr/lib/sasl2/*; do
+      ln -sf $lib $out/lib/sasl2/
+      done
+    '';
+  });
+
   # Make bdb5 the default as it is the last release under the custom
   # bsd-like license
   db = db5;
