@@ -1,18 +1,20 @@
-{ stdenv, fetchurl, pkg-config, perl
+{ lib, stdenv, fetchurl, pkg-config, perl
 , openssl, db, zlib, cyrus_sasl
+, Security
 }:
 
 stdenv.mkDerivation rec {
   pname = "isync";
-  version = "1.3.6";
+  version = "1.4.3";
 
   src = fetchurl {
     url = "mirror://sourceforge/isync/${pname}-${version}.tar.gz";
-    sha256 = "1vla4cc6viyfqhp54f29sy9i3fx7hmawmmnmw4f4bd2w4qqlgr8v";
+    sha256 = "024p3glj4p7fhrssw5sr55arls9zna1igxxrspxlfd6sbds21ixl";
   };
 
   nativeBuildInputs = [ pkg-config perl ];
-  buildInputs = [ openssl db cyrus_sasl zlib ];
+  buildInputs = [ openssl db cyrus_sasl zlib ]
+    ++ lib.optionals stdenv.isDarwin [ Security ];
 
   meta = with stdenv.lib; {
     homepage = "http://isync.sourceforge.net/";
