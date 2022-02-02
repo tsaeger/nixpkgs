@@ -39,6 +39,10 @@ stdenv.mkDerivation rec {
       url = "https://github.com/neomutt/neomutt/commit/ee7cb4e461c1cdf0ac14817b03687d5908b85f84.patch";
       sha256 = "sha256-PQMXPko/UPlhzmOTsUWjrhVtUQCv22ppmi/u8Xof5d8=";
     })
+    (fetchpatch {
+      url = "https://github.com/neomutt/neomutt/commit/54c93c9f9abcfccad8cc50f33625ec7783344fdd.patch";
+      sha256 = "sha256-3viACltqBaNrCWp+6LmEPeQLZ0Jo8OMHUVSXrveQq+U=";
+    })
   ];
 
   enableParallelBuilding = true;
