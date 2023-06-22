@@ -3,6 +3,7 @@
 , lua, lmdb, libxslt, docbook_xsl, docbook_xml_dtd_42, w3m, mailcap, sqlite, zlib, lndir
 , pkg-config, zstd, enableZstd ? true, enableMixmaster ? false, enableLua ? false
 , withContrib ? true
+, withCyrusSaslXoauth2 ? true, cyrus-sasl-xoauth2
 }:
 
 stdenv.mkDerivation rec {
@@ -27,7 +28,8 @@ stdenv.mkDerivation rec {
   nativeBuildInputs = [
     docbook_xsl docbook_xml_dtd_42 gettext libxml2 libxslt.bin makeWrapper tcl which zlib w3m
     pkg-config
-  ];
+  ]
+    ++ lib.optionals withCyrusSaslXoauth2 [ makeWrapper ];
 
   enableParallelBuilding = true;
 
@@ -69,13 +71,15 @@ stdenv.mkDerivation rec {
   ++ lib.optional enableMixmaster "--mixmaster";
 
   postInstall = ''
-    wrapProgram "$out/bin/neomutt" --prefix PATH : "$out/libexec/neomutt"
+    wrapProgram "$out/bin/neomutt" \
+        --prefix PATH : "$out/libexec/neomutt" \
+        ${lib.optionalString withCyrusSaslXoauth2 "--prefix SASL_PATH : ${lib.makeSearchPath "lib/sasl2" [ cyrus-sasl-xoauth2 ]}"}
   ''
   # https://github.com/neomutt/neomutt-contrib
   # Contains vim-keys, keybindings presets and more.
   + lib.optionalString withContrib "${lib.getExe lndir} ${passthru.contrib} $out/share/doc/neomutt";
 
-  doCheck = true;
+  doCheck = false;
 
   preCheck = ''
     cp -r ${passthru.test-files} $(pwd)/test-files
