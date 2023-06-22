@@ -3,7 +3,7 @@
 , Security
 # Disabled by default as XOAUTH2 is an "OBSOLETE" SASL mechanism and this relies
 # on a package that isn't really maintained anymore:
-, withCyrusSaslXoauth2 ? false, cyrus-sasl-xoauth2, makeWrapper
+, withCyrusSaslXoauth2 ? true, cyrus-sasl-xoauth2, makeWrapper
 }:
 
 stdenv.mkDerivation rec {
