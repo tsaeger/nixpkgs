@@ -10905,6 +10905,8 @@ with pkgs;
 
   libcomps = callPackage ../tools/package-management/libcomps { python = python3; };
 
+  libcourier-unicode = callPackage ../development/libraries/libcourier-unicode { };
+
   libcxxrt = callPackage ../development/libraries/libcxxrt {
     stdenv =
       if stdenv.hostPlatform.useLLVM or false then
