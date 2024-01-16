@@ -1,18 +1,18 @@
-{ fetchurl, lib, stdenv, pkg-config, pcre, perl
+{ fetchurl, lib, stdenv, pkg-config, pcre2, perl, libidn2, libcourier-unicode
 , darwin, libiconv
 }:
 
 stdenv.mkDerivation rec {
   pname = "maildrop";
-  version = "2.6.0";
+  version = "3.1.6";
 
   src = fetchurl {
     url = "mirror://sourceforge/courier/maildrop/${version}/maildrop-${version}.tar.bz2";
-    sha256 = "1a94p2b41iy334cwfwmzi19557dn5j61abh0cp2rfc9dkc8ibhdg";
+    sha256 = "sha256-54sEBBt8HUb9mySDI4d/gNweQiPZ8G89x38KjwzTrf0=";
   };
 
   nativeBuildInputs = [ pkg-config ];
-  buildInputs = [ pcre perl ]
+  buildInputs = [ pcre2 perl libidn2 libcourier-unicode ]
   ++ lib.optionals stdenv.isDarwin [
     libiconv darwin.apple_sdk.frameworks.Security ]
   ;
