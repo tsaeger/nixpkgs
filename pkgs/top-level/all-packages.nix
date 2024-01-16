@@ -21886,6 +21886,8 @@ with pkgs;
 
   libcouchbase = callPackage ../development/libraries/libcouchbase { };
 
+  libcourier-unicode = callPackage ../development/libraries/libcourier-unicode { };
+
   libcue = callPackage ../development/libraries/libcue { };
 
   libcutl = callPackage ../development/libraries/libcutl { };
