@@ -43,13 +43,13 @@ assert lib.warnIf (
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "neomutt";
-  version = "20241002";
+  version = "20241212";
 
   src = fetchFromGitHub {
     owner = "neomutt";
     repo = "neomutt";
     rev = finalAttrs.version;
-    hash = "sha256-c8G0CGg4jrwq+HVR4O0AtaJNzr7pDYsie1410tisLEY=";
+    hash = "sha256-MruzI+4hdgBeE5kaptLsKyefNHIWCTWi3nCkMRTYtqQ=";
   };
 
   buildInputs =
@@ -124,7 +124,7 @@ stdenv.mkDerivation (finalAttrs: {
     ++ lib.optional enableZstd "--zstd"
     ++ lib.optional enableLua "--lua";
 
-  postInstall = 
+  postInstall =
     ''
       wrapProgram "$out/bin/neomutt" --prefix PATH : "$out/libexec/neomutt" \
           ${lib.optionalString withCyrusSaslXoauth2 "--prefix SASL_PATH : ${lib.makeSearchPath "lib/sasl2" [ cyrus-sasl-xoauth2 ]}"}
