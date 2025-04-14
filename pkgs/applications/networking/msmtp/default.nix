@@ -21,6 +21,9 @@
   withSystemd ? lib.meta.availableOn stdenv.hostPlatform systemd,
   systemd,
   withScripts ? true,
+  gitUpdater,
+  binlore,
+  msmtp,
 }:
 
 let
@@ -129,7 +132,9 @@ let
             "cannot:${getBin systemd}/bin/systemd-cat"
           ];
         fix."$MSMTP" = [ "msmtp" ];
-        fake.external = [ "ping" ] ++ optionals (!withSystemd) [ "systemd-cat" ];
+        fake.external = [ "ping" ] ++ optionals (!withSystemd) [ "systemd-cat" ]
+          ++ lib.optionals stdenv.hostPlatform.isDarwin [ "notify-send" "sed" ];
+        keep.source = [ "~/.msmtpqrc" ];
       };
 
       msmtp-queue = {
@@ -150,7 +155,16 @@ if withScripts then
       binaries
       scripts
     ];
-    passthru = { inherit binaries scripts; };
+    passthru = {
+      inherit binaries scripts src;
+      # msmtpq forwards most of its arguments to msmtp [1].
+      #
+      # [1]: <https://github.com/marlam/msmtp/blob/msmtp-1.8.26/scripts/msmtpq/msmtpq#L301>
+      binlore.out = binlore.synthesize msmtp ''
+        wrapper bin/msmtpq bin/msmtp
+      '';
+      updateScript = gitUpdater { rev-prefix = "msmtp-"; };
+    };
   }
 else
   binaries
