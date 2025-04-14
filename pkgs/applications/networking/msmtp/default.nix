@@ -128,7 +128,8 @@ let
             "cannot:${getBin systemd}/bin/systemd-cat"
           ];
         fix."$MSMTP" = [ "msmtp" ];
-        fake.external = [ "ping" ] ++ optionals (!withSystemd) [ "systemd-cat" ];
+        fake.external = [ "ping" ] ++ optionals (!withSystemd) [ "systemd-cat" ]
+          ++ lib.optionals stdenv.hostPlatform.isDarwin [ "notify-send" "sed" ];
         keep.source = [ "~/.msmtpqrc" ];
       };
 
